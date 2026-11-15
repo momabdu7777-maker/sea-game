@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <!-- يُستبدل بقيمة --base-href عند البناء (على GitHub Pages: /sea-game/play/) -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="صياد البحر العربي: ارمِ صنارتك، تفادَ قناديل البحر، وصارع القرش والتونة والهامور. العبها من المتصفح.">
+  <meta name="theme-color" content="#0B4F86">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="صياد البحر">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <title>صياد البحر العربي</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; height: 100%; background: #041B33; overflow: hidden; touch-action: none; }
+    #loader {
+      position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      background: linear-gradient(180deg, #5FBDEB 0%, #D4F1FC 34%, #2EC4D6 34.5%, #1279B8 62%, #0A3A6B 100%);
+      font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif; color: #fff; transition: opacity .35s;
+    }
+    #loader img { width: 112px; height: 112px; border-radius: 26px; box-shadow: 0 12px 30px rgba(0,0,0,.35); animation: bob 2.4s ease-in-out infinite; }
+    #loader b { font-size: 22px; text-shadow: 0 2px 8px rgba(0,0,0,.4); }
+    #loader .bar { width: 160px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.25); overflow: hidden; }
+    #loader .bar i { display: block; width: 40%; height: 100%; border-radius: 3px; background: #FFD54F; animation: slide 1.1s ease-in-out infinite; }
+    #loader small { opacity: .85; font-size: 13px; }
+    @keyframes bob { 50% { transform: translateY(-8px) rotate(-3deg); } }
+    @keyframes slide { 0% { transform: translateX(150%); } 100% { transform: translateX(-250%); } }
+    @media (prefers-reduced-motion: reduce) { #loader img, #loader .bar i { animation: none; } }
+  </style>
+</head>
+<body>
+  <div id="loader" role="status">
+    <img src="icons/Icon-192.png" alt="">
+    <b>صياد البحر العربي</b>
+    <div class="bar"><i></i></div>
+    <small>جارٍ تجهيز البحر…</small>
+  </div>
+  <script>
+    // نخفي شاشة التحميل عند ظهور أول إطار من اللعبة
+    window.addEventListener('flutter-first-frame', function () {
+      var l = document.getElementById('loader');
+      if (!l) return;
+      l.style.opacity = '0';
+      setTimeout(function () { l.remove(); }, 400);
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
