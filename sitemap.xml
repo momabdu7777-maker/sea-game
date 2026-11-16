@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://momabdu7777-maker.github.io/sea-game/</loc>
+    <lastmod>2026-11-16</lastmod>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/og.jpg</image:loc></image:image>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/shots/fight.webp</image:loc></image:image>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/shots/stages.webp</image:loc></image:image>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/shots/results.webp</image:loc></image:image>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/shots/shop.webp</image:loc></image:image>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/shots/descend.webp</image:loc></image:image>
+    <image:image><image:loc>https://momabdu7777-maker.github.io/sea-game/shots/help.webp</image:loc></image:image>
+  </url>
+  <url><loc>https://momabdu7777-maker.github.io/sea-game/play/</loc><lastmod>2026-11-16</lastmod></url>
+</urlset>
