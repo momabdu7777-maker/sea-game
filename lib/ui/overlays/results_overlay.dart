@@ -337,19 +337,22 @@ class _FishRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // Wrap: الشارات تنزل لسطر جديد بدل أن تقص اسم السمكة
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 2),
                       child: Text(
                         s.name,
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                       ),
                     ),
-                    const SizedBox(width: 6),
                     _Chip(text: s.rarity.arabicName, color: s.rarity.color),
-                    if (fish.fromFight && !lost) ...[const SizedBox(width: 4), const _Chip(text: 'صراع 💪', color: Color(0xFF2E9D57))],
-                    if (fish.isNew) ...[const SizedBox(width: 4), const _Chip(text: 'جديد!', color: AppColors.coral)],
+                    if (fish.fromFight && !lost) const _Chip(text: 'صراع 💪', color: Color(0xFF2E9D57)),
+                    if (fish.isNew) const _Chip(text: 'جديد!', color: AppColors.coral),
                   ],
                 ),
                 Text(

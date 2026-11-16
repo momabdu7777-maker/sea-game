@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- صورة المشاركة (Open Graph) لصفحة التحميل: 1200×630.
+     التوليد:  chromium --headless=new --window-size=1200,630 --hide-scrollbars \
+               --screenshot=site/og.png "file://$PWD/tools/og/og-card.html" -->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:Tajawal;src:url(../../assets/fonts/Tajawal-ExtraBold.ttf);font-weight:800}
+@font-face{font-family:Tajawal;src:url(../../assets/fonts/Tajawal-Bold.ttf);font-weight:700}
+@font-face{font-family:Tajawal;src:url(../../assets/fonts/Tajawal-Black.ttf);font-weight:900}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1200px;height:630px;overflow:hidden}
+body{
+  font-family:Tajawal,sans-serif;color:#fff;position:relative;
+  background:
+    radial-gradient(circle at 88% 8%,rgba(255,213,79,.55),transparent 18%),
+    linear-gradient(180deg,#7fd3f0 0,#47b5e0 24%,#2ec4d6 24.4%,#1279b8 55%,#0a3a6b 82%,#041b33 100%);
+}
+.rays{position:absolute;inset:0;background:repeating-linear-gradient(100deg,transparent 0 70px,rgba(255,255,255,.05) 70px 110px);}
+.text{position:absolute;right:64px;top:70px;width:600px}
+.brand{display:flex;align-items:center;gap:22px}
+.brand img{width:132px;height:132px;border-radius:30px;box-shadow:0 14px 34px rgba(0,0,0,.35)}
+h1{font-size:72px;font-weight:900;line-height:1.05;text-shadow:0 4px 18px rgba(0,30,60,.45)}
+.sub{font-size:28px;font-weight:700;color:#e6f7ff;margin-top:6px}
+.tag{font-size:34px;font-weight:800;margin-top:34px;line-height:1.45;text-shadow:0 3px 12px rgba(0,30,60,.5)}
+.tag b{color:#ffd54f}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+.chips span{background:rgba(4,27,51,.55);border:2px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 18px;font-size:24px;font-weight:800}
+.chips span.gold{background:linear-gradient(180deg,#ffd54f,#f5a623);color:#3a2400;border-color:transparent}
+.phones{position:absolute;left:40px;top:40px;width:470px;height:560px}
+.phone{position:absolute;width:250px;border-radius:30px;border:7px solid #0b1a2b;box-shadow:0 22px 50px rgba(0,0,0,.5);overflow:hidden;background:#0b1a2b}
+.phone img{display:block;width:100%}
+.p1{left:0;top:40px;transform:rotate(-7deg)}
+.p2{left:200px;top:0;transform:rotate(5deg)}
+</style>
+</head>
+<body>
+<div class="rays"></div>
+<div class="phones">
+  <div class="phone p1"><img src="../../site/shots/stages.webp" alt=""></div>
+  <div class="phone p2"><img src="../../site/shots/fight.webp" alt=""></div>
+</div>
+<div class="text">
+  <div class="brand">
+    <img src="../../site/icon.png" alt="">
+    <div>
+      <h1>صياد البحر العربي</h1>
+      <div class="sub">لعبة صيد عربية مجانية</div>
+    </div>
+  </div>
+  <p class="tag">ارمِ صنارتك من المكلا حتى أعماق المحيط الهندي… <b>وصارع القرش!</b></p>
+  <div class="chips">
+    <span>🗺️ 4 مراحل</span><span>🐟 20 سمكة</span><span>🛠️ طوّر عدّتك</span><span class="gold">مجانية · أندرويد والمتصفح</span>
+  </div>
+</div>
+</body>
+</html>
