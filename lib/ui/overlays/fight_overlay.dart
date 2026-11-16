@@ -176,7 +176,7 @@ class _FishHeader extends StatelessWidget {
           ),
         ),
         Text(
-          '+${fish.value}',
+          plus(fish.value),
           style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 20, fontWeight: FontWeight.w900),
         ),
       ],
@@ -376,7 +376,7 @@ class _OutcomeCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              won ? '+${f.value} ريال' : 'ضاعت عليك ${f.value} ريال!',
+              won ? 'ربحت ${f.value} ريال' : 'ضاعت عليك ${f.value} ريال!',
               style: TextStyle(color: const Color(0xFFFFE082), fontSize: won ? 24 : 20, fontWeight: FontWeight.w900),
             ),
             if (!won) ...[

@@ -9,6 +9,7 @@ import '../config/game_config.dart';
 import '../data/cast_result.dart';
 import '../data/fish_species.dart';
 import '../data/rarity.dart';
+import '../data/stage.dart';
 import '../services/game_audio.dart';
 import '../services/haptics.dart';
 import '../state/player_state.dart';
@@ -84,11 +85,21 @@ class FightOutcome {
 ///   بناء الواجهة كلها 60 مرة في الثانية.
 /// - الحالة الدائمة (الريالات، الألبوم) عبر Riverpod من خلال [readPlayer] و[onCastFinished].
 class SeaHunterGame extends FlameGame {
-  SeaHunterGame({required this.config, required this.catalog, required this.readPlayer, required this.onCastFinished, required this.audio})
-    : _spawner = SeaSpawner(config, catalog);
+  SeaHunterGame({
+    required this.config,
+    required this.catalog,
+    required this.readPlayer,
+    required this.onCastFinished,
+    required this.audio,
+    StageCatalog? stages,
+  }) : stages = stages ?? StageCatalog.single,
+       _spawner = SeaSpawner(config, catalog);
 
   final GameConfig config;
   final FishCatalog catalog;
+
+  /// المراحل (المرحلة الحالية تُقرأ من حالة اللاعب عند تجهيز كل بحر).
+  final StageCatalog stages;
   final PlayerState Function() readPlayer;
   final CastResult Function(CastResult) onCastFinished;
   final GameAudio audio;
@@ -100,6 +111,9 @@ class SeaHunterGame extends FlameGame {
   final caughtCount = ValueNotifier<int>(0);
   final capacity = ValueNotifier<int>(0);
   final lineLength = ValueNotifier<double>(0);
+
+  /// أقصى عمق ممكن للرمية = الأقل بين طول الخيط وقاع المرحلة.
+  final castLimit = ValueNotifier<double>(0);
   final banner = ValueNotifier<GameBanner?>(null);
   final dragging = ValueNotifier<bool>(false);
 
@@ -183,9 +197,44 @@ class SeaHunterGame extends FlameGame {
   double get viewHeight => size.y;
   bool get isFull => hooked.length >= capacity.value;
 
+  /// المرحلة التي جُهّز لها البحر الحالي.
+  Stage get stage => _stage;
+  Stage _stage = Stage.open;
+
+  // ---------- القوائم (الشرح، التطوير، المراحل) ----------
+  static const menuOverlays = ['help', 'shop', 'stages'];
+
+  /// أثناء فتح قائمة لا يصل اللمس للعبة (حتى لا يتحول تمرير القائمة إلى رمية).
+  bool get menuOpen => menuOverlays.any(overlays.isActive);
+
+  void openMenu(String name) {
+    _aimStart = null;
+    dragging.value = false;
+    boat.bend = 0;
+    for (final m in menuOverlays) {
+      if (m != name && overlays.isActive(m)) overlays.remove(m);
+    }
+    overlays.add(name);
+  }
+
+  void closeMenu(String name) => overlays.remove(name);
+
+  /// أزرار الواجهة تعلّم اللمسة حتى لا تبدأ رمية تحتها (انظر UiTouch).
+  bool _uiTouch = false;
+  void markUiTouch() => _uiTouch = true;
+  bool consumeUiTouch() {
+    final v = _uiTouch;
+    _uiTouch = false;
+    return v;
+  }
+
+  /// يعيد تجهيز البحر بعد شراء ترقية أو تغيير المرحلة (فقط قبل الرمية).
+  void reloadSea() {
+    if (phase.value == CastPhase.aiming && isLoaded) _prepareSea();
+  }
   /// العمق المتوقع للقوة الحالية أثناء السحب.
   double depthForPower(double p) =>
-      p >= config.perfectCastThreshold ? lineLength.value : math.max(config.minCastDepth, p * lineLength.value);
+      p >= config.perfectCastThreshold ? castLimit.value : math.max(config.minCastDepth, p * castLimit.value);
 
   /// نقطة دخول الصنارة للماء — السحب يساراً يرمي يميناً (مثل المقلاع).
   double entryXForPull(double pullX) => (size.x * 0.5 - pullX * 0.9).clamp(36.0, size.x - 36.0);
@@ -213,6 +262,7 @@ class SeaHunterGame extends FlameGame {
   // =====================================================================
 
   void pointerDown(Vector2 p) {
+    if (menuOpen) return;
     _pointerIsDown = true;
     switch (phase.value) {
       case CastPhase.aiming:
@@ -229,6 +279,7 @@ class SeaHunterGame extends FlameGame {
   }
 
   void pointerMove(Vector2 p, Vector2 delta) {
+    if (menuOpen) return;
     switch (phase.value) {
       case CastPhase.aiming:
         final start = _aimStart;
@@ -258,7 +309,7 @@ class SeaHunterGame extends FlameGame {
 
   void pointerUp() {
     _pointerIsDown = false;
-    if (phase.value == CastPhase.aiming && _aimStart != null) {
+    if (phase.value == CastPhase.aiming && _aimStart != null && !menuOpen) {
       if (aimPower >= config.minPowerToCast) {
         _startCast();
       } else {
@@ -301,13 +352,15 @@ class SeaHunterGame extends FlameGame {
     _clearFight();
 
     final player = readPlayer();
+    _stage = stages.byId(player.currentStage);
     lineLength.value = config.lineLengthForLevel(player.lineLevel);
+    castLimit.value = math.min(lineLength.value, _stage.seabed);
     capacity.value = config.hookCapacityForLevel(player.hookLevel);
     caughtCount.value = 0;
     depthMeters.value = 0;
 
     _seed = DateTime.now().microsecondsSinceEpoch & 0x3fffffff;
-    final plan = _spawner.plan(seed: _seed, maxDepth: lineLength.value, width: size.x);
+    final plan = _spawner.plan(seed: _seed, maxDepth: castLimit.value, width: size.x, stage: _stage);
     for (final s in plan.obstacles) {
       obstacles.add(ObstacleComponent(s, ppm));
     }
@@ -365,12 +418,17 @@ class SeaHunterGame extends FlameGame {
     _shake = 4;
     fx.bubbles(hook.position, 8);
     Haptics.medium();
-    showBanner('اصطد الآن! ⬆', tone: BannerTone.good, seconds: 1.1);
+    final atSeabed = castLimit.value < lineLength.value && _targetDepth >= castLimit.value;
+    showBanner(atSeabed ? 'وصلت إلى القاع! اصطد الآن ⬆' : 'اصطد الآن! ⬆', tone: BannerTone.good, seconds: 1.1);
     _setPhase(CastPhase.turning);
   }
 
-  CaughtFish _caughtFrom(FishComponent f, {bool fromFight = false}) =>
-      CaughtFish(species: f.species, weightKg: f.weightKg, value: SeaSpawner.priceOf(config, f.species, f.weightKg), fromFight: fromFight);
+  CaughtFish _caughtFrom(FishComponent f, {bool fromFight = false}) => CaughtFish(
+    species: f.species,
+    weightKg: f.weightKg,
+    value: (SeaSpawner.priceOf(config, f.species, f.weightKg) * _stage.priceMultiplier).round(),
+    fromFight: fromFight,
+  );
 
   void _catch(FishComponent f) {
     final s = f.species;
@@ -446,9 +504,10 @@ class SeaHunterGame extends FlameGame {
       seed: _seed,
       lost: List.of(_lost),
       fightLog: List.of(_fightLog),
+      stageId: _stage.id,
     );
     lastResult = onCastFinished(result);
-    if (result.hasNewSpecies || result.fish.any((f) => f.species.rarity.index >= Rarity.epic.index)) {
+    if (result.completedStage || result.hasNewSpecies || result.fish.any((f) => f.species.rarity.index >= Rarity.epic.index)) {
       audio.play(Sfx.fanfare, volume: 0.7);
       Haptics.medium();
     }

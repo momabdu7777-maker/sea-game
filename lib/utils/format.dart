@@ -10,3 +10,6 @@ String formatKg(double w) {
   }
   return b.toString();
 }
+
+/// رقم بإشارة موجبة يبقى «+120» داخل نص عربي (معزول باتجاه يسار-يمين، وإلا ظهر «120+»).
+String plus(num v) => '\u2066+$v\u2069';

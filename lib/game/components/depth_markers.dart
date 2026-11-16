@@ -38,8 +38,8 @@ class DepthMarkers extends Component with HasGameReference<SeaHunterGame> {
       final tp = _label(m);
       tp.paint(canvas, Offset(w - 20 - tp.width, y - tp.height / 2));
     }
-    // نهاية الخيط
-    final limitY = game.lineLength.value * ppm;
+    // نهاية الخيط (أو قاع المرحلة إن كان أقرب)
+    final limitY = game.castLimit.value * ppm;
     if (limitY > top && limitY < bottom) {
       for (var x = 0.0; x < w; x += 18) {
         canvas.drawLine(Offset(x, limitY), Offset(x + 9, limitY), _limit);

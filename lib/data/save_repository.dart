@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../state/player_state.dart';
@@ -7,7 +8,12 @@ import '../state/player_state.dart';
 class SaveRepository {
   SaveRepository._(this._box);
 
-  final Box<dynamic> _box;
+  /// حفظ في الذاكرة فقط (للاختبارات).
+  @visibleForTesting
+  SaveRepository.inMemory() : _box = null;
+
+  final Box<dynamic>? _box;
+  final Map<String, dynamic> _memory = {};
 
   static const _boxName = 'sea_hunter_save';
   static const _playerKey = 'player';
@@ -18,10 +24,17 @@ class SaveRepository {
   }
 
   PlayerState loadPlayer() {
-    final raw = _box.get(_playerKey);
+    final raw = _box == null ? _memory[_playerKey] : _box.get(_playerKey);
     if (raw is Map) return PlayerState.fromMap(Map<String, dynamic>.from(raw));
     return PlayerState.initial();
   }
 
-  Future<void> savePlayer(PlayerState s) => _box.put(_playerKey, s.toMap());
+  Future<void> savePlayer(PlayerState s) async {
+    final box = _box;
+    if (box == null) {
+      _memory[_playerKey] = s.toMap();
+    } else {
+      await box.put(_playerKey, s.toMap());
+    }
+  }
 }

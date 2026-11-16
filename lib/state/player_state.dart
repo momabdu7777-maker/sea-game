@@ -1,3 +1,5 @@
+import '../data/stage.dart';
+
 /// حالة اللاعب الدائمة (تُحفظ في Hive).
 class PlayerState {
   const PlayerState({
@@ -14,6 +16,10 @@ class PlayerState {
     this.fightsLost = 0,
     this.fightStreak = 0,
     this.bestFightStreak = 0,
+    this.currentStage = '',
+    this.stageProgress = const {},
+    this.completedStages = const {},
+    this.seenHelp = false,
   });
 
   factory PlayerState.initial() =>
@@ -31,11 +37,11 @@ class PlayerState {
   final int totalCasts;
   final double bestDepth;
 
-  /// مستويات الترقيات (المرحلة 3 ستضيف الباقي).
+  /// مستويات الترقيات (تُشترى من شاشة «تطوير العدة»).
   final int lineLevel;
   final int hookLevel;
 
-  /// ترقية "قوة الخيط": توسّع المنطقة الخضراء وتؤخر انقطاع الخيط (واجهتها في المرحلة 3).
+  /// ترقية "قوة الخيط": توسّع المنطقة الخضراء وتؤخر انقطاع الخيط.
   final int lineStrengthLevel;
 
   final bool soundOn;
@@ -49,6 +55,22 @@ class PlayerState {
   final int bestFightStreak;
 
   int get totalFights => fightsWon + fightsLost;
+
+  // ---------- المراحل ----------
+
+  /// معرّف المرحلة التي يصطاد فيها اللاعب الآن ('' = الأولى).
+  final String currentStage;
+
+  /// التقدم في كل مرحلة (المفتاح = معرّف المرحلة).
+  final Map<String, StageProgress> stageProgress;
+
+  /// المراحل التي اكتملت أهدافها (تفتح ما بعدها).
+  final Set<String> completedStages;
+
+  /// هل شاهد شاشة «كيف تصطاد؟» (تظهر تلقائياً أول مرة فقط).
+  final bool seenHelp;
+
+  StageProgress progressIn(String stageId) => stageProgress[stageId] ?? StageProgress.empty;
 
   bool hasDiscovered(String speciesId) => catchCounts.containsKey(speciesId);
 
@@ -66,6 +88,10 @@ class PlayerState {
     int? fightsLost,
     int? fightStreak,
     int? bestFightStreak,
+    String? currentStage,
+    Map<String, StageProgress>? stageProgress,
+    Set<String>? completedStages,
+    bool? seenHelp,
   }) => PlayerState(
     coins: coins ?? this.coins,
     catchCounts: catchCounts ?? this.catchCounts,
@@ -80,6 +106,10 @@ class PlayerState {
     fightsLost: fightsLost ?? this.fightsLost,
     fightStreak: fightStreak ?? this.fightStreak,
     bestFightStreak: bestFightStreak ?? this.bestFightStreak,
+    currentStage: currentStage ?? this.currentStage,
+    stageProgress: stageProgress ?? this.stageProgress,
+    completedStages: completedStages ?? this.completedStages,
+    seenHelp: seenHelp ?? this.seenHelp,
   );
 
   Map<String, dynamic> toMap() => {
@@ -96,6 +126,10 @@ class PlayerState {
     'fightsLost': fightsLost,
     'fightStreak': fightStreak,
     'bestFightStreak': bestFightStreak,
+    'currentStage': currentStage,
+    'stageProgress': {for (final e in stageProgress.entries) e.key: e.value.toMap()},
+    'completedStages': completedStages.toList(),
+    'seenHelp': seenHelp,
   };
 
   factory PlayerState.fromMap(Map<String, dynamic> m) {
@@ -115,6 +149,14 @@ class PlayerState {
       fightsLost: (m['fightsLost'] as num?)?.toInt() ?? 0,
       fightStreak: (m['fightStreak'] as num?)?.toInt() ?? 0,
       bestFightStreak: (m['bestFightStreak'] as num?)?.toInt() ?? 0,
+      currentStage: m['currentStage'] as String? ?? '',
+      stageProgress: switch (m['stageProgress']) {
+        final Map raw => {for (final e in raw.entries) e.key.toString(): StageProgress.fromMap(e.value as Map)},
+        _ => const {},
+      },
+      completedStages: {for (final s in (m['completedStages'] as List? ?? const [])) s.toString()},
+      // اللاعب القديم (لعب قبل إضافة الشرح) لا نعرض له الشرح تلقائياً
+      seenHelp: m['seenHelp'] as bool? ?? ((m['totalCasts'] as num?)?.toInt() ?? 0) > 0,
     );
   }
 }

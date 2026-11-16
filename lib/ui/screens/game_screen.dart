@@ -6,8 +6,11 @@ import '../../game/sea_hunter_game.dart';
 import '../../services/game_audio.dart';
 import '../../state/providers.dart';
 import '../overlays/fight_overlay.dart';
+import '../overlays/help_overlay.dart';
 import '../overlays/hud_overlay.dart';
 import '../overlays/results_overlay.dart';
+import '../overlays/shop_overlay.dart';
+import '../overlays/stages_overlay.dart';
 
 /// الشاشة الرئيسية: لعبة Flame + واجهات Flutter فوقها.
 class GameScreen extends ConsumerStatefulWidget {
@@ -32,6 +35,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       readPlayer: () => ref.read(playerProvider),
       onCastFinished: (r) => ref.read(playerProvider.notifier).applyCastResult(r),
       audio: _audio,
+      stages: ref.read(stageCatalogProvider),
     );
   }
 
@@ -49,6 +53,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         behavior: HitTestBehavior.opaque,
         onPointerDown: (e) {
           _audio.userGesture();
+          // لمسة على زر في الواجهة: لا تبدأ رمية
+          if (_game.consumeUiTouch()) return;
           if (_pointer != null) return;
           _pointer = e.pointer;
           _game.pointerDown(_v(e.localPosition));
@@ -69,12 +75,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         },
         child: GameWidget<SeaHunterGame>(
           game: _game,
+          // Flame يفرض اليسار-لليمين على الواجهات إن لم نحدد الاتجاه
+          textDirection: TextDirection.rtl,
           overlayBuilderMap: {
             'hud': (context, game) => HudOverlay(game: game),
             'fight': (context, game) => FightOverlay(game: game),
             'results': (context, game) => ResultsOverlay(game: game),
+            'help': (context, game) => HelpOverlay(game: game),
+            'shop': (context, game) => ShopOverlay(game: game),
+            'stages': (context, game) => StagesOverlay(game: game),
           },
-          initialActiveOverlays: const ['hud'],
+          // الشرح يظهر تلقائياً في أول تشغيل
+          initialActiveOverlays: ['hud', if (!ref.read(playerProvider).seenHelp) 'help'],
         ),
       ),
     );

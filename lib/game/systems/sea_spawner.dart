@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../../config/game_config.dart';
 import '../../data/fish_species.dart';
+import '../../data/stage.dart';
 
 /// أنواع العوائق.
 enum ObstacleKind {
@@ -65,9 +66,11 @@ class SeaSpawner {
   final GameConfig config;
   final FishCatalog catalog;
 
-  SpawnPlan plan({required int seed, required double maxDepth, required double width}) {
+  /// [stage] تحدد أي الأسماك تظهر (منطقتها) وكثافة العوائق.
+  SpawnPlan plan({required int seed, required double maxDepth, required double width, Stage stage = Stage.open}) {
     final rng = math.Random(seed);
-    return SpawnPlan(_fish(rng, maxDepth, width), _obstacles(rng, maxDepth, width));
+    final pool = catalog.species.where(stage.hasFish).toList(growable: false);
+    return SpawnPlan(_fish(rng, pool, maxDepth, width), _obstacles(rng, maxDepth, width, stage.obstacleDensity));
   }
 
   /// وزن عشوائي يميل للأوزان الأخف (الكبيرة أندر).
@@ -85,14 +88,14 @@ class SeaSpawner {
     return math.max(1, (s.basePrice * mult * (0.7 + 0.6 * norm)).round());
   }
 
-  List<FishSpawn> _fish(math.Random rng, double maxDepth, double width) {
+  List<FishSpawn> _fish(math.Random rng, List<FishSpecies> pool, double maxDepth, double width) {
     final out = <FishSpawn>[];
     final avgGap = 1 / config.fishGroupsPerMeter;
     var d = 2.0;
     while (true) {
       d += avgGap * (0.45 + rng.nextDouble() * 1.1);
       if (d > maxDepth + 4) break;
-      final candidates = catalog.species.where((s) => s.livesAt(d)).toList();
+      final candidates = pool.where((s) => s.livesAt(d)).toList();
       if (candidates.isEmpty) continue;
       final s = _pickWeighted(rng, candidates);
       final count = s.schoolMin + rng.nextInt(math.max(1, s.schoolMax - s.schoolMin + 1));
@@ -128,12 +131,13 @@ class SeaSpawner {
     return list.last;
   }
 
-  List<ObstacleSpawn> _obstacles(math.Random rng, double maxDepth, double width) {
+  List<ObstacleSpawn> _obstacles(math.Random rng, double maxDepth, double width, double density) {
     final out = <ObstacleSpawn>[];
     var d = config.obstacleStartDepth;
     while (true) {
       final ramp = (d / config.obstacleRampDepth).clamp(0.0, 1.0);
-      final spacing = config.obstacleSpacingShallow + (config.obstacleSpacingDeep - config.obstacleSpacingShallow) * ramp;
+      // المراحل الأصعب أكثف عوائق، لكن لا تقل المسافة عن 5.5 م حتى يبقى التفادي ممكناً
+      final spacing = math.max(5.5, (config.obstacleSpacingShallow + (config.obstacleSpacingDeep - config.obstacleSpacingShallow) * ramp) / density);
       d += spacing * (0.7 + rng.nextDouble() * 0.6);
       if (d > maxDepth) break;
       final kinds = ObstacleKind.values.where((k) => d >= k.minDepth).toList();

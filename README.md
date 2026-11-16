@@ -2,7 +2,7 @@
 
 لعبة صيد أركيد للجوال — Flutter + Flame + Riverpod + Hive.
 
-## المرحلة الحالية: 2 (صراع الأسماك الكبيرة)
+## الإصدار الحالي: 1.2 (المراحل والتطوير وشرح الصيد)
 
 - **المرحلة 1:** الرمي بالسحب ← النزول وتفادي العوائق ← الصعود والتقاط الأسماك ← القذف الاحتفالي ← شاشة النتيجة.
 - **المرحلة 2:** عند تعلّق سمكة كبيرة (هامور، تونة صفراء الزعانف، قرش، قرش الحوت) يبدأ صراع:
@@ -12,6 +12,15 @@
   - كل أرقام الصراع (`fight*`) في `lib/config/game_config.dart`.
   - المنطق في `lib/game/systems/fight_session.dart` (مستقل عن الرسم ومُختبَر في `test/fight_test.dart`).
   - الواجهة في `lib/ui/overlays/fight_overlay.dart`.
+- **الإصدار 1.2:**
+  - **❓ كيف تصطاد؟** شرح مصوّر للخطوات والنصائح، يظهر تلقائياً أول مرة ومن زر «كيف أصطاد» — `lib/ui/overlays/help_overlay.dart`.
+  - **🗺️ المراحل:** ساحل المكلا ← خليج عدن ← جزيرة سقطرى ← أعماق المحيط الهندي. لكل مرحلة أسماكها (حقل `regions` في fish.json)
+    وعمق قاعها ومضاعف أسعارها وكثافة عوائقها وأهدافها؛ إكمال الأهداف يفتح التالية.
+    كلها في `assets/data/stages.json` (عدّل/أضف مراحل بدون لمس الكود) — المنطق في `lib/data/stage.dart`.
+  - **🛠️ تطوير العدة:** طول الخيط (100→300 م)، سعة الصنارة (4→10)، قوة الخيط (صراع أسهل).
+    الأسعار والحدود في `lib/data/upgrades.dart`، والشاشة في `lib/ui/overlays/shop_overlay.dart`.
+  - 7 أسماك جديدة للأعماق: شعري، جش، عقام، سمك الفانوس ✨، أبو الشص ✨، أبو سيف 💪، الحبار العملاق 💪 (أسطوري).
+  - إصلاح: واجهات اللعبة كانت تُعرض يساراً-ليميناً لأن Flame يفرض ذلك؛ أصبحت من اليمين لليسار.
 
 ## العب الآن
 
@@ -23,6 +32,7 @@
 ```
 assets/
   data/fish.json          ← بيانات الأسماك (عدّل/أضف هنا بدون لمس الكود)
+  data/stages.json        ← المراحل وأهدافها
   audio/*.wav             ← أصوات مؤقتة (تُولَّد بـ tools/gen_sfx.py)
   fonts/Tajawal-*.ttf
 lib/
@@ -41,7 +51,7 @@ lib/
   ui/                     ← واجهات Flutter: HUD، لوحة الصراع، شاشة النتيجة
 web/                      ← نسخة المتصفح (شاشة التحميل، الأيقونات، manifest)
 tools/icon/               ← توليد أيقونة اللعبة من رسم الأسماك نفسه
-test/                     ← اختبارات المنطق + اختبار شامل للصراع (fight_flow_test)
+test/                     ← اختبارات المنطق + الصراع (fight_flow_test) + المراحل والتطوير (progression_test) + القوائم (menus_shots_test)
 ```
 
 ## التشغيل
@@ -53,6 +63,7 @@ flutter run                 # على جوال موصول بـ USB (وضع debug)
 flutter run --release       # لتجربة الأداء الحقيقي (60fps)
 flutter build apk --release # ملف APK في build/app/outputs/flutter-apk/app-release.apk
 flutter test
+SHOTS_DIR=/tmp/shots flutter test test/menus_shots_test.dart   # صور شاشات القوائم بالخطوط الحقيقية
 
 # نسخة الويب (لـ GitHub Pages تحت /sea-game/play/)
 flutter build web --release --base-href /sea-game/play/ --no-web-resources-cdn

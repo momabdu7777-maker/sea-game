@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/upgrades.dart';
 import '../../game/sea_hunter_game.dart';
 import '../../state/providers.dart';
 import '../theme.dart';
@@ -25,7 +26,7 @@ class HudOverlay extends StatelessWidget {
               children: [
                 _CatchCounter(game: game),
                 const SizedBox(width: 8),
-                const _SoundButton(),
+                UiTouch(game: game, child: const _SoundButton()),
               ],
             ),
           ),
@@ -36,21 +37,207 @@ class HudOverlay extends StatelessWidget {
             child: Center(child: _DepthReadout(game: game)),
           ),
           Positioned(
+            top: 62,
+            left: 0,
+            right: 0,
+            // تصغر تلقائياً على الشاشات الضيقة أو مع تكبير الخط في إعدادات الجوال
+            child: Center(
+              child: _AimingOnly(
+                game: game,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: FittedBox(fit: BoxFit.scaleDown, child: _StageChip(game: game)),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
             top: 130,
             left: 16,
             right: 16,
             child: Center(child: _BannerView(game: game)),
           ),
           Positioned(
-            bottom: 26,
+            bottom: 100,
             left: 16,
             right: 16,
             child: Center(child: _Hints(game: game)),
+          ),
+          Positioned(
+            bottom: 18,
+            left: 12,
+            right: 12,
+            child: _AimingOnly(game: game, child: _MenuBar(game: game)),
           ),
         ],
       ),
     );
   }
+}
+
+/// يمنع اللمسة على زر في الواجهة من أن تبدأ رمية في اللعبة تحته.
+class UiTouch extends StatelessWidget {
+  const UiTouch({super.key, required this.game, required this.child});
+
+  final SeaHunterGame game;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Listener(onPointerDown: (_) => game.markUiTouch(), child: child);
+}
+
+/// يظهر فقط قبل الرمية (على القارب)، ويختفي ويتجاهل اللمس أثناء الصيد.
+class _AimingOnly extends StatelessWidget {
+  const _AimingOnly({required this.game, required this.child});
+
+  final SeaHunterGame game;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([game.phase, game.dragging]),
+    builder: (context, _) {
+      final show = game.phase.value == CastPhase.aiming && !game.dragging.value;
+      return IgnorePointer(
+        ignoring: !show,
+        child: AnimatedOpacity(opacity: show ? 1 : 0, duration: const Duration(milliseconds: 200), child: child),
+      );
+    },
+  );
+}
+
+/// اسم المرحلة الحالية (يفتح شاشة المراحل).
+class _StageChip extends ConsumerWidget {
+  const _StageChip({required this.game});
+
+  final SeaHunterGame game;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stage = ref.watch(currentStageProvider);
+    final catalog = ref.watch(stageCatalogProvider);
+    if (stage.goals.isEmpty) return const SizedBox.shrink();
+    final p = ref.watch(playerProvider);
+    final done = stage.goalsDone(p.progressIn(stage.id));
+    return UiTouch(
+      game: game,
+      child: GestureDetector(
+        onTap: () => game.openMenu('stages'),
+        child: _Pill(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${stage.emoji} ${stage.name}', style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                decoration: BoxDecoration(
+                  color: done == stage.goals.length ? const Color(0xFF2E9D57) : const Color(0x33FFFFFF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'المرحلة ${catalog.indexOf(stage) + 1} • الأهداف $done من ${stage.goals.length}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// أزرار أسفل الشاشة قبل الرمية: كيف أصطاد، المراحل، التطوير.
+class _MenuBar extends ConsumerWidget {
+  const _MenuBar({required this.game});
+
+  final SeaHunterGame game;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.watch(playerProvider);
+    final canUpgrade = Upgrade.values.any((u) => u.canAfford(p));
+    return Row(
+      children: [
+        Expanded(
+          child: _MenuButton(game: game, emoji: '❓', label: 'كيف أصطاد', onTap: () => game.openMenu('help')),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MenuButton(game: game, emoji: '🗺️', label: 'المراحل', onTap: () => game.openMenu('stages')),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MenuButton(game: game, emoji: '🛠️', label: 'تطوير', badge: canUpgrade, onTap: () => game.openMenu('shop')),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({required this.game, required this.emoji, required this.label, required this.onTap, this.badge = false});
+
+  final SeaHunterGame game;
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+
+  /// نقطة تنبيه (مثلاً: لديك ريالات تكفي لترقية).
+  final bool badge;
+
+  @override
+  Widget build(BuildContext context) => UiTouch(
+    game: game,
+    child: Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.passthrough,
+      children: [
+        Material(
+          color: const Color(0xB3062B4F),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: badge ? AppColors.gold : Colors.white24, width: badge ? 2 : 1.5),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 22)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (badge)
+          PositionedDirectional(
+            top: -4,
+            end: -4,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: AppColors.coral,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _Pill extends StatelessWidget {

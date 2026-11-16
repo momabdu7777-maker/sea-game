@@ -34,7 +34,17 @@ class CastResult {
     this.obstacleName,
     this.lost = const [],
     this.fightLog = const [],
+    this.stageId = '',
   });
+
+  /// المرحلة التي تمت فيها الرمية.
+  final String stageId;
+
+  /// تحددها PlayerNotifier: هل اكتملت أهداف المرحلة بهذه الرمية؟
+  bool completedStage = false;
+
+  /// تحددها PlayerNotifier: الأهداف التي تحققت لأول مرة في هذه الرمية (أرقامها في قائمة أهداف المرحلة).
+  List<int> newGoals = const [];
 
   final List<CaughtFish> fish;
 

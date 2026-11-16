@@ -13,14 +13,18 @@ void main() {
   final catalog = FishCatalog.parse(File('assets/data/fish.json').readAsStringSync());
   const config = GameConfig();
 
-  test('ملف الأسماك صالح: 13 نوعاً بمعرفات فريدة وقيم منطقية', () {
-    expect(catalog.species.length, 13);
-    expect(catalog.species.map((s) => s.id).toSet().length, 13);
+  test('ملف الأسماك صالح: 20 نوعاً بمعرفات فريدة وقيم منطقية', () {
+    expect(catalog.species.length, 20);
+    expect(catalog.species.map((s) => s.id).toSet().length, 20);
     for (final s in catalog.species) {
       expect(s.minDepth, lessThan(s.maxDepth), reason: s.id);
       expect(s.minWeight, lessThan(s.maxWeight), reason: s.id);
-      expect(s.maxDepth, lessThanOrEqualTo(config.baseLineLength), reason: '${s.id} يجب أن يكون في متناول الخيط الأساسي');
+      expect(s.minDepth, lessThan(config.lineLengthForLevel(8)), reason: '${s.id} يجب أن يكون في متناول أطول خيط');
+      expect(s.regions, isNotEmpty, reason: s.id);
     }
+    // اللاعب الجديد (خيط 100 م) يجد في المكلا أنواعاً تكفي لهدف «اكتشف 6 أنواع»
+    final starter = catalog.species.where((s) => s.regions.contains('mukalla') && s.minDepth < config.baseLineLength);
+    expect(starter.length, greaterThanOrEqualTo(8));
     expect(catalog.byId('hamour')!.rarity, Rarity.epic);
     expect(catalog.byId('whaleshark')!.rarity, Rarity.legendary);
     for (final s in catalog.species.where((s) => s.bigFight)) {

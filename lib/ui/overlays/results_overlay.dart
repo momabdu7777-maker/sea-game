@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/cast_result.dart';
+import '../../data/upgrades.dart';
 import '../../game/sea_hunter_game.dart';
+import '../../state/providers.dart';
 import '../theme.dart';
 import '../widgets/fish_icon.dart';
 import '../../utils/format.dart';
 
 /// شاشة نتيجة الرمية مع زر "رمية جديدة" الكبير.
-class ResultsOverlay extends StatefulWidget {
+class ResultsOverlay extends ConsumerStatefulWidget {
   const ResultsOverlay({super.key, required this.game});
 
   final SeaHunterGame game;
 
   @override
-  State<ResultsOverlay> createState() => _ResultsOverlayState();
+  ConsumerState<ResultsOverlay> createState() => _ResultsOverlayState();
 }
 
-class _ResultsOverlayState extends State<ResultsOverlay> with SingleTickerProviderStateMixin {
+class _ResultsOverlayState extends ConsumerState<ResultsOverlay> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..forward();
   bool _leaving = false;
 
@@ -100,6 +103,8 @@ class _ResultsOverlayState extends State<ResultsOverlay> with SingleTickerProvid
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 15, color: Color(0xFF5C6B7A), fontWeight: FontWeight.w600),
               ),
+              if (r.completedStage) ...[const SizedBox(height: 12), _staggered(0, _StageCompleteBanner(result: r))],
+              if (!r.completedStage && r.newGoals.isNotEmpty) ...[const SizedBox(height: 10), _staggered(0, _GoalsBanner(result: r))],
               if (r.hasNewSpecies) ...[const SizedBox(height: 12), _staggered(0, const _NewAlbumBanner())],
               const SizedBox(height: 12),
               if (rows.isEmpty)
@@ -128,14 +133,21 @@ class _ResultsOverlayState extends State<ResultsOverlay> with SingleTickerProvid
                   children: [
                     const Text('المجموع', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                     const Spacer(),
+                    // الرقم والعملة في عنصرين حتى لا ينقلب «+» في النص العربي
                     Text(
-                      '+${r.totalValue} ريال',
+                      plus(r.totalValue),
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFC77700)),
+                    ),
+                    const Text(
+                      ' ريال',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFC77700)),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+              _staggered(rows.length + 2, _MenuRow(game: widget.game)),
+              const SizedBox(height: 10),
               _BigButton(label: 'رمية جديدة 🎣', onTap: _newCast),
             ],
           ),
@@ -157,6 +169,109 @@ class _ResultsOverlayState extends State<ResultsOverlay> with SingleTickerProvid
         position: Tween(begin: const Offset(0.15, 0), end: Offset.zero).animate(a),
         child: child,
       ),
+    );
+  }
+}
+
+/// «أكملت المرحلة!» مع اسم المرحلة التي فُتحت.
+class _StageCompleteBanner extends ConsumerWidget {
+  const _StageCompleteBanner({required this.result});
+
+  final CastResult result;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog = ref.watch(stageCatalogProvider);
+    final stage = catalog.byId(result.stageId);
+    final next = catalog.next(stage);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF43C46B), Color(0xFF2E9D57)]),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '🎉 أكملت «${stage.name}»!',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: Colors.white),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            next == null ? '🏆 أنت سيد البحر العربي!' : 'فُتحت مرحلة جديدة: ${next.emoji} ${next.name}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// الأهداف التي تحققت لأول مرة في هذه الرمية.
+class _GoalsBanner extends ConsumerWidget {
+  const _GoalsBanner({required this.result});
+
+  final CastResult result;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stage = ref.watch(stageCatalogProvider).byId(result.stageId);
+    final fish = ref.read(fishCatalogProvider);
+    final done = ref.watch(playerProvider.select((p) => stage.goalsDone(p.progressIn(stage.id))));
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final i in result.newGoals)
+            Text(
+              '✓ ${stage.goals[i].label(fish)}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF2E7D32)),
+            ),
+          Text(
+            'أهداف ${stage.name}: $done من ${stage.goals.length}',
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF5C6B7A)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// زرّا «المراحل» و«تطوير» تحت النتيجة.
+class _MenuRow extends ConsumerWidget {
+  const _MenuRow({required this.game});
+
+  final SeaHunterGame game;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.watch(playerProvider);
+    final canUpgrade = Upgrade.values.any((u) => u.canAfford(p));
+    Widget button(String label, VoidCallback onTap, {bool highlight = false}) => Expanded(
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
+          backgroundColor: highlight ? const Color(0xFFFFF1CC) : Colors.white,
+          side: BorderSide(color: highlight ? const Color(0xFFFFB300) : const Color(0x33062B4F), width: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.seaDeep),
+        ),
+      ),
+    );
+    return Row(
+      children: [
+        button('🗺️ المراحل', () => game.openMenu('stages')),
+        const SizedBox(width: 10),
+        button(canUpgrade ? '🛠️ تطوير متاح!' : '🛠️ تطوير', () => game.openMenu('shop'), highlight: canUpgrade),
+      ],
     );
   }
 }
@@ -245,7 +360,7 @@ class _FishRow extends StatelessWidget {
             ),
           ),
           Text(
-            '+${fish.value}',
+            plus(fish.value),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,

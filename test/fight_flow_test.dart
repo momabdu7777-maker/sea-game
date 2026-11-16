@@ -56,6 +56,7 @@ void main() {
               key: boundary,
               child: GameWidget<SeaHunterGame>(
                 game: game,
+                textDirection: TextDirection.rtl,
                 overlayBuilderMap: {
                   'hud': (context, g) => HudOverlay(game: g),
                   'fight': (context, g) => FightOverlay(game: g),
